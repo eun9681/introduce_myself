@@ -1,14 +1,26 @@
 {
   "topics": [
     {
-      "id": "1",
-      "title": "html",
-      "body": "html is .."
+      "title": "안녕",
+      "body": "안녕하십니까",
+      "author": "익명",
+      "date": "2026-04-20",
+      "id": "RW66TuGTmhg"
     },
     {
-      "id": "2",
-      "title": "css",
-      "body": "css is .."
+      "title": "집",
+      "body": "집에 가고싶다",
+      "author": "익명",
+      "date": "2026-04-20",
+      "id": "UPi2yfDMLTY"
+    },
+    {
+      "title": "hi ",
+      "body": "my namr is da eun",
+      "author": "익명",
+      "date": "2026-04-20",
+      "id": "uEbiMvuFwPI"
     }
-  ]
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
 }
