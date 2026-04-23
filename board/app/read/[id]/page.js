@@ -52,7 +52,7 @@ export default function Read() {
     alert("삭제가 완료되었습니다");
 
     // 삭제 후 목록으로 이동
-    router.push('/');
+    router.push('/board');
     router.refresh();
 
   } catch (err) {
