@@ -82,12 +82,10 @@ export default function Read() {
     <div className="read-container">
         <div className="read-card">
             <h2 className="read-title">{topic.title}</h2>
-            <h2 className="read-title">{topic.title}</h2>
 
             <p style={{ color: "#888", marginBottom: "10px" }}>
                 작성자: {topic.author || "익명"} | 날짜: {topic.date || "날짜 없음"}
             </p>
-            <p className="read-body">{topic.body}</p>
             <p className="read-body">{topic.body}</p>
 
             <div className="read-buttons">
