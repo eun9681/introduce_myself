@@ -8,19 +8,29 @@ export default function Board() {
   const [search, setSearch] = useState('');
   const [type, setType] = useState('title');
 
+  // 데이터 불러오기
   useEffect(() => {
     async function fetchData() {
       try {
-        const resp = await fetch("http://localhost:9999/topics");
+        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/topics`, {
+          cache: "no-store" // ⭐ 최신 데이터 보장
+        });
+
+        if (!resp.ok) {
+          throw new Error("데이터 불러오기 실패");
+        }
+
         const data = await resp.json();
         setTopics(data);
       } catch (err) {
         console.error("에러 발생:", err);
       }
     }
+
     fetchData();
   }, []);
 
+  // 검색 필터
   const filteredTopics = topics.filter((topic) => {
     if (!search) return true;
     return topic[type]?.toLowerCase().includes(search.toLowerCase());
@@ -43,6 +53,7 @@ export default function Board() {
         </div>
       </header>
 
+      {/* 게시판 */}
       <div className="container">
         <h2 className="title">게시판</h2>
 
@@ -90,6 +101,7 @@ export default function Board() {
                   </td>
 
                   <td>{topic.author || "익명"}</td>
+
                   <td>
                     {topic.date || new Date().toLocaleDateString()}
                   </td>
@@ -99,6 +111,7 @@ export default function Board() {
           </tbody>
         </table>
 
+        {/* 글쓰기 버튼 */}
         <div className="bottom">
           <Link href="/create">
             <button className="write-btn">글쓰기</button>
