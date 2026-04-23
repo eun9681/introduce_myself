@@ -1,10 +1,10 @@
 const express = require("express");
-const cors = require("cors");   // ✅ 추가
+const cors = require("cors");
 const fs = require("fs");
 
 const app = express();
 
-app.use(cors());                // ✅ 추가 (중요!)
+app.use(cors());           
 app.use(express.json());
 
 let topics = [];
@@ -48,6 +48,8 @@ app.delete("/topics/:id", (req, res) => {
   res.json({ success: true });
 });
 
-app.listen(9999, () => {
-  console.log("API 서버 실행: http://localhost:9999");
+const PORT = process.env.PORT || 9999;
+
+app.listen(PORT, () => {
+  console.log(`API 서버 실행: ${PORT}`);
 });
