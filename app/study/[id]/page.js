@@ -69,12 +69,6 @@ export default function StudyRead() {
             작성일: {(item.created_at || '').slice(0, 10)}
           </p>
 
-          {item.image_url && (
-            <div className="study-detail-img">
-              <img src={item.image_url} alt={item.title} />
-            </div>
-          )}
-
           <p className="read-body" style={{ whiteSpace: 'pre-wrap' }}>
             {item.content}
           </p>

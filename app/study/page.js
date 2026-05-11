@@ -21,9 +21,22 @@ export default function StudyList() {
     })();
   }, []);
 
+  // 카테고리별로 다른 이모지 배경
+  const categoryEmoji = (cat) => {
+    const map = {
+      'Next.js': '⚛️',
+      'React': '⚛️',
+      'JavaScript': '📜',
+      'CSS': '🎨',
+      'HTML': '📄',
+      'MySQL': '🗄️',
+      'Node.js': '🟢',
+    };
+    return map[cat] || '📚';
+  };
+
   return (
     <>
-      {/* 헤더 */}
       <header className="header">
         <div className="logo">
           <img src="/logo.png" alt="logo" />
@@ -54,17 +67,10 @@ export default function StudyList() {
           <div className="study-grid">
             {items.map((it) => (
               <Link href={`/study/${it.id}`} key={it.id} className="study-card">
-                <div
-                  className="study-thumb"
-                  style={
-                    it.image_url
-                      ? { backgroundImage: `url(${it.image_url})` }
-                      : {}
-                  }
-                >
-                  {!it.image_url && (
-                    <span className="study-thumb-placeholder">📚</span>
-                  )}
+                <div className="study-thumb">
+                  <span className="study-thumb-placeholder">
+                    {categoryEmoji(it.category)}
+                  </span>
                 </div>
                 <div className="study-card-body">
                   <span className="study-tag">{it.category || 'ETC'}</span>
@@ -81,7 +87,7 @@ export default function StudyList() {
 
         <div className="study-bottom">
           <Link href="/study/create">
-            <button className="write-btn">✏️ 글쓰기</button>
+            <button className="write-btn">글쓰기</button>
           </Link>
         </div>
       </div>

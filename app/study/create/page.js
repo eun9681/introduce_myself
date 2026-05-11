@@ -10,25 +10,7 @@ export default function StudyCreate() {
   const [category, setCategory] = useState('Next.js');
   const [content, setContent] = useState('');
   const [code, setCode] = useState('');
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const onFileChange = (e) => {
-    const f = e.target.files?.[0];
-    if (!f) {
-      setFile(null);
-      setPreview(null);
-      return;
-    }
-    if (f.size > 5 * 1024 * 1024) {
-      alert('이미지는 5MB 이하만 업로드 가능합니다');
-      e.target.value = '';
-      return;
-    }
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +25,6 @@ export default function StudyCreate() {
     fd.append('category', category);
     fd.append('content', content);
     if (code) fd.append('code', code);
-    if (file) fd.append('image', file);
 
     try {
       const resp = await fetch('/api/study', { method: 'POST', body: fd });
@@ -76,7 +57,7 @@ export default function StudyCreate() {
       </header>
 
       <div className="form-container">
-        <h2>📘 공부기록 작성</h2>
+        <h2>공부기록 작성</h2>
         <form onSubmit={onSubmit}>
           <input
             type="text"
@@ -114,21 +95,6 @@ export default function StudyCreate() {
             onChange={(e) => setCode(e.target.value)}
             style={{ fontFamily: 'monospace', height: 120 }}
           />
-
-          <label className="file-label">
-            📎 이미지 첨부 (jpg, png, gif, webp · 최대 5MB)
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
-              onChange={onFileChange}
-            />
-          </label>
-
-          {preview && (
-            <div className="file-preview">
-              <img src={preview} alt="preview" />
-            </div>
-          )}
 
           <div className="btn-group">
             <button type="submit" disabled={submitting}>
