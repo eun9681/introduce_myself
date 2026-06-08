@@ -12,8 +12,17 @@ export default function StudyUpdate() {
   const [category, setCategory] = useState('Next.js');
   const [content, setContent] = useState('');
   const [code, setCode] = useState('');
+  const [image, setImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [existingImageUrl, setExistingImageUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const onImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setImage(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : '');
+  };
 
   // 기존 데이터 로드
   useEffect(() => {
@@ -26,6 +35,7 @@ export default function StudyUpdate() {
         setCategory(data.category || 'ETC');
         setContent(data.content || '');
         setCode(data.code || '');
+        setExistingImageUrl(data.image_url || '');
       } catch {
         alert('데이터를 불러올 수 없습니다');
         router.push('/study');
@@ -48,6 +58,7 @@ export default function StudyUpdate() {
     fd.append('category', category);
     fd.append('content', content);
     fd.append('code', code || '');
+    if (image) fd.append('image', image);
 
     try {
       const resp = await fetch(`/api/study/${id}`, {
@@ -123,6 +134,20 @@ export default function StudyUpdate() {
             onChange={(e) => setCode(e.target.value)}
             style={{ fontFamily: 'monospace', height: 120 }}
           />
+
+          <label className="file-label">
+            커버 이미지
+            <input type="file" accept="image/*" onChange={onImageChange} />
+          </label>
+
+          {(previewUrl || existingImageUrl) && (
+            <div className="file-preview">
+              <img
+                src={previewUrl || existingImageUrl}
+                alt="커버 이미지 미리보기"
+              />
+            </div>
+          )}
 
           <div className="btn-group">
             <button type="submit" disabled={submitting}>

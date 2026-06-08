@@ -6,7 +6,7 @@ export async function GET() {
         const [rows] = await db.query(
             `SELECT id, title, body, author, date
                FROM topics
-              ORDER BY id DESC`
+              ORDER BY id ASC`
         );
         return Response.json(rows);
     } catch (err) {

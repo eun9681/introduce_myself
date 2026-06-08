@@ -68,9 +68,13 @@ export default function StudyList() {
             {items.map((it) => (
               <Link href={`/study/${it.id}`} key={it.id} className="study-card">
                 <div className="study-thumb">
-                  <span className="study-thumb-placeholder">
-                    {categoryEmoji(it.category)}
-                  </span>
+                  {it.image_url ? (
+                    <img src={it.image_url} alt={it.title} className="study-cover-img" />
+                  ) : (
+                    <span className="study-thumb-placeholder">
+                      {categoryEmoji(it.category)}
+                    </span>
+                  )}
                 </div>
                 <div className="study-card-body">
                   <span className="study-tag">{it.category || 'ETC'}</span>

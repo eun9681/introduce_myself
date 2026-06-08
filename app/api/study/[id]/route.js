@@ -1,11 +1,14 @@
 import { db } from '../../../lib/db';
+import { saveStudyImage } from '../../../lib/studyImage';
+
+export const runtime = 'nodejs';
 
 // 상세 조회
 export async function GET(req, { params }) {
     try {
         const { id } = await params;
         const [rows] = await db.query(
-            `SELECT id, title, category, content, code, created_at
+            `SELECT id, title, category, content, code, image_url, created_at
                FROM study_logs WHERE id = ?`,
             [id]
         );
@@ -29,15 +32,18 @@ export async function PATCH(req, { params }) {
         const category = form.get('category');
         const content  = form.get('content');
         const code     = form.get('code') ?? null;
+        const image    = form.get('image');
+        const imageUrl = await saveStudyImage(image);
 
         const [result] = await db.query(
             `UPDATE study_logs
                 SET title    = COALESCE(?, title),
                     category = COALESCE(?, category),
                     content  = COALESCE(?, content),
-                    code     = ?
+                    code     = ?,
+                    image_url = COALESCE(?, image_url)
               WHERE id = ?`,
-            [title ?? null, category ?? null, content ?? null, code, id]
+            [title ?? null, category ?? null, content ?? null, code, imageUrl, id]
         );
 
         if (result.affectedRows === 0) {
@@ -47,6 +53,9 @@ export async function PATCH(req, { params }) {
         return Response.json({ id: Number(id), ok: true });
     } catch (err) {
         console.error('PATCH /api/study/[id] error:', err);
+        if (err.status) {
+            return Response.json({ error: err.message }, { status: err.status });
+        }
         return Response.json({ error: 'DB 수정 실패' }, { status: 500 });
     }
 }

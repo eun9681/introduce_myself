@@ -4,7 +4,6 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Update() {
-  console.log("API:", process.env.NEXT_PUBLIC_API_URL);
   const router = useRouter();
   const params = useParams();
   const id = params.id;

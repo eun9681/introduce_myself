@@ -93,7 +93,7 @@ export default function Board() {
             ) : (
               filteredTopics.map((topic, index) => (
                 <tr key={topic.id}>
-                  <td>{filteredTopics.length - index}</td>
+                  <td>{index + 1}</td>
 
                   <td>
                     <Link href={`/read/${topic.id}`}>

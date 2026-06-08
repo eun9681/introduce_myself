@@ -15,7 +15,7 @@ export function Control() {
           <li><Link href={`/update/${id}`}>update</Link></li>
           <li>
             <button onClick={async () => {
-              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/topics/${id}`, {
+              await fetch(`/api/topics/${id}`, {
                 method: "DELETE",
               });
               router.push("/");
