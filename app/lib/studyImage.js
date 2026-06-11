@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { getStorageBucket } from './firebaseAdmin';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'study');
@@ -12,8 +12,62 @@ const IMAGE_EXTENSIONS = {
     'image/gif': '.gif',
 };
 
+function cleanEnv(value) {
+    return value?.trim().replace(/^['"]/, '').replace(/['"]$/, '');
+}
+
+function hasCloudinaryConfig() {
+    return Boolean(
+        cleanEnv(process.env.CLOUDINARY_CLOUD_NAME) &&
+        cleanEnv(process.env.CLOUDINARY_API_KEY) &&
+        cleanEnv(process.env.CLOUDINARY_API_SECRET)
+    );
+}
+
 function shouldUseFirebaseStorage() {
-    return process.env.VERCEL === '1' || Boolean(process.env.FIREBASE_STORAGE_BUCKET);
+    return Boolean(process.env.FIREBASE_STORAGE_BUCKET);
+}
+
+function cloudinarySignature(params, apiSecret) {
+    const payload = Object.keys(params)
+        .sort()
+        .map((key) => `${key}=${params[key]}`)
+        .join('&');
+
+    return createHash('sha1').update(`${payload}${apiSecret}`).digest('hex');
+}
+
+async function saveStudyImageToCloudinary(file, bytes, fileName) {
+    const cloudName = cleanEnv(process.env.CLOUDINARY_CLOUD_NAME);
+    const apiKey = cleanEnv(process.env.CLOUDINARY_API_KEY);
+    const apiSecret = cleanEnv(process.env.CLOUDINARY_API_SECRET);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const folder = 'study';
+    const publicId = path.parse(fileName).name;
+    const signature = cloudinarySignature({ folder, public_id: publicId, timestamp }, apiSecret);
+    const form = new FormData();
+
+    form.append('file', new Blob([bytes], { type: file.type }), fileName);
+    form.append('api_key', apiKey);
+    form.append('timestamp', String(timestamp));
+    form.append('folder', folder);
+    form.append('public_id', publicId);
+    form.append('signature', signature);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: form,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw Object.assign(
+            new Error(data.error?.message || 'Cloudinary 이미지 업로드에 실패했습니다.'),
+            { status: 500 }
+        );
+    }
+
+    return data.secure_url;
 }
 
 async function saveStudyImageToStorage(file, bytes, ext) {
@@ -58,8 +112,19 @@ export async function saveStudyImage(file) {
     const fileName = `${Date.now()}-${randomUUID()}${ext}`;
     const bytes = Buffer.from(await file.arrayBuffer());
 
+    if (hasCloudinaryConfig()) {
+        return saveStudyImageToCloudinary(file, bytes, fileName);
+    }
+
     if (shouldUseFirebaseStorage()) {
         return saveStudyImageToStorage(file, bytes, ext);
+    }
+
+    if (process.env.VERCEL === '1') {
+        throw Object.assign(
+            new Error('Vercel에서 이미지 업로드를 사용하려면 Cloudinary 환경변수를 설정하세요.'),
+            { status: 500 }
+        );
     }
 
     return saveStudyImageToLocal(fileName, bytes);
