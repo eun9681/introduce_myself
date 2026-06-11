@@ -1,57 +1,76 @@
-import { db } from '../../lib/db';
+import { getFirestore, serverTimestamp } from '../../lib/firebaseAdmin';
 import { saveStudyImage } from '../../lib/studyImage';
 
 export const runtime = 'nodejs';
 
-// 학습 카드 목록
+function toDateString(value) {
+    if (!value) return '';
+    if (typeof value.toDate === 'function') return value.toDate().toISOString();
+    return String(value);
+}
+
+function studyResponse(doc) {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        title: data.title || '',
+        category: data.category || 'ETC',
+        content: data.content || '',
+        code: data.code || '',
+        image_url: data.image_url || '',
+        created_at: toDateString(data.created_at),
+    };
+}
+
 export async function GET() {
     try {
-        const [rows] = await db.query(
-            `SELECT id, title, category, content, code, image_url, created_at
-               FROM study_logs
-              ORDER BY id DESC`
-        );
-        return Response.json(rows);
+        const firestore = getFirestore();
+        const snapshot = await firestore
+            .collection('study_logs')
+            .orderBy('created_at', 'desc')
+            .get();
+
+        return Response.json(snapshot.docs.map(studyResponse));
     } catch (err) {
         console.error('GET /api/study error:', err);
-        return Response.json({ error: 'DB 조회 실패' }, { status: 500 });
+        return Response.json({ error: '공부 기록 조회 실패' }, { status: 500 });
     }
 }
 
-// 학습 카드 작성
 export async function POST(req) {
     try {
+        const firestore = getFirestore();
         const form = await req.formData();
-        const title    = form.get('title');
+        const title = form.get('title');
         const category = form.get('category') || 'ETC';
-        const content  = form.get('content');
-        const code     = form.get('code') || null;
-        const image    = form.get('image');
+        const content = form.get('content');
+        const code = form.get('code') || '';
+        const image = form.get('image');
 
         if (!title || !content) {
             return Response.json(
-                { error: '제목과 내용을 입력하세요' },
+                { error: '제목과 내용을 입력하세요.' },
                 { status: 400 }
             );
         }
 
         const imageUrl = await saveStudyImage(image);
+        const doc = await firestore.collection('study_logs').add({
+            title,
+            category,
+            content,
+            code,
+            image_url: imageUrl || '',
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+        });
 
-        const [result] = await db.query(
-            `INSERT INTO study_logs (title, category, content, code, image_url)
-             VALUES (?, ?, ?, ?, ?)`,
-            [title, category, content, code, imageUrl]
-        );
-
-        return Response.json(
-            { id: result.insertId, ok: true },
-            { status: 201 }
-        );
+        return Response.json({ id: doc.id, ok: true }, { status: 201 });
     } catch (err) {
         console.error('POST /api/study error:', err);
         if (err.status) {
             return Response.json({ error: err.message }, { status: err.status });
         }
-        return Response.json({ error: 'DB 저장 실패' }, { status: 500 });
+        return Response.json({ error: '공부 기록 저장 실패' }, { status: 500 });
     }
 }

@@ -1,43 +1,56 @@
-import { db } from '../../lib/db';
+import { getFirestore, serverTimestamp } from '../../lib/firebaseAdmin';
 
-// 게시글 목록
 export async function GET() {
     try {
-        const [rows] = await db.query(
-            `SELECT id, title, body, author, date
-               FROM topics
-              ORDER BY id ASC`
-        );
+        const firestore = getFirestore();
+        const snapshot = await firestore
+            .collection('topics')
+            .orderBy('created_at', 'asc')
+            .get();
+
+        const rows = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title || '',
+                body: data.body || '',
+                author: data.author || '익명',
+                date: data.date || '',
+            };
+        });
+
         return Response.json(rows);
     } catch (err) {
         console.error('GET /api/topics error:', err);
-        return Response.json({ error: 'DB 조회 실패' }, { status: 500 });
+        return Response.json({ error: '게시글 조회 실패' }, { status: 500 });
     }
 }
 
-// 게시글 작성
 export async function POST(req) {
     try {
+        const firestore = getFirestore();
         const { title, body, author, date } = await req.json();
 
         if (!title || !body) {
             return Response.json(
-                { error: '제목과 내용을 입력하세요' },
+                { error: '제목과 내용을 입력하세요.' },
                 { status: 400 }
             );
         }
 
         const today = date || new Date().toISOString().slice(0, 10);
-
-        const [result] = await db.query(
-            `INSERT INTO topics (title, body, author, date)
-             VALUES (?, ?, ?, ?)`,
-            [title, body, author || '익명', today]
-        );
+        const doc = await firestore.collection('topics').add({
+            title,
+            body,
+            author: author || '익명',
+            date: today,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+        });
 
         return Response.json(
             {
-                id: result.insertId,
+                id: doc.id,
                 title,
                 body,
                 author: author || '익명',
@@ -47,6 +60,6 @@ export async function POST(req) {
         );
     } catch (err) {
         console.error('POST /api/topics error:', err);
-        return Response.json({ error: 'DB 저장 실패' }, { status: 500 });
+        return Response.json({ error: '게시글 저장 실패' }, { status: 500 });
     }
 }

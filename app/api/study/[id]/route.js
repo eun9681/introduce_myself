@@ -1,80 +1,93 @@
-import { db } from '../../../lib/db';
+import { getFirestore, serverTimestamp } from '../../../lib/firebaseAdmin';
 import { saveStudyImage } from '../../../lib/studyImage';
 
 export const runtime = 'nodejs';
 
-// 상세 조회
+function toDateString(value) {
+    if (!value) return '';
+    if (typeof value.toDate === 'function') return value.toDate().toISOString();
+    return String(value);
+}
+
+function studyResponse(doc) {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        title: data.title || '',
+        category: data.category || 'ETC',
+        content: data.content || '',
+        code: data.code || '',
+        image_url: data.image_url || '',
+        created_at: toDateString(data.created_at),
+    };
+}
+
 export async function GET(req, { params }) {
     try {
+        const firestore = getFirestore();
         const { id } = await params;
-        const [rows] = await db.query(
-            `SELECT id, title, category, content, code, image_url, created_at
-               FROM study_logs WHERE id = ?`,
-            [id]
-        );
-        if (rows.length === 0) {
-            return Response.json({ error: '없습니다' }, { status: 404 });
+        const doc = await firestore.collection('study_logs').doc(id).get();
+
+        if (!doc.exists) {
+            return Response.json({ error: '공부 기록이 없습니다.' }, { status: 404 });
         }
-        return Response.json(rows[0]);
+
+        return Response.json(studyResponse(doc));
     } catch (err) {
         console.error('GET /api/study/[id] error:', err);
-        return Response.json({ error: 'DB 조회 실패' }, { status: 500 });
+        return Response.json({ error: '공부 기록 조회 실패' }, { status: 500 });
     }
 }
 
-// 수정
 export async function PATCH(req, { params }) {
     try {
+        const firestore = getFirestore();
         const { id } = await params;
         const form = await req.formData();
+        const ref = firestore.collection('study_logs').doc(id);
+        const doc = await ref.get();
 
-        const title    = form.get('title');
-        const category = form.get('category');
-        const content  = form.get('content');
-        const code     = form.get('code') ?? null;
-        const image    = form.get('image');
-        const imageUrl = await saveStudyImage(image);
-
-        const [result] = await db.query(
-            `UPDATE study_logs
-                SET title    = COALESCE(?, title),
-                    category = COALESCE(?, category),
-                    content  = COALESCE(?, content),
-                    code     = ?,
-                    image_url = COALESCE(?, image_url)
-              WHERE id = ?`,
-            [title ?? null, category ?? null, content ?? null, code, imageUrl, id]
-        );
-
-        if (result.affectedRows === 0) {
-            return Response.json({ error: '없습니다' }, { status: 404 });
+        if (!doc.exists) {
+            return Response.json({ error: '공부 기록이 없습니다.' }, { status: 404 });
         }
 
-        return Response.json({ id: Number(id), ok: true });
+        const image = form.get('image');
+        const imageUrl = await saveStudyImage(image);
+        const updates = { updated_at: serverTimestamp() };
+
+        if (form.has('title')) updates.title = form.get('title');
+        if (form.has('category')) updates.category = form.get('category') || 'ETC';
+        if (form.has('content')) updates.content = form.get('content');
+        if (form.has('code')) updates.code = form.get('code') || '';
+        if (imageUrl) updates.image_url = imageUrl;
+
+        await ref.update(updates);
+
+        return Response.json({ id, ok: true });
     } catch (err) {
         console.error('PATCH /api/study/[id] error:', err);
         if (err.status) {
             return Response.json({ error: err.message }, { status: err.status });
         }
-        return Response.json({ error: 'DB 수정 실패' }, { status: 500 });
+        return Response.json({ error: '공부 기록 수정 실패' }, { status: 500 });
     }
 }
 
-// 삭제
 export async function DELETE(req, { params }) {
     try {
+        const firestore = getFirestore();
         const { id } = await params;
+        const ref = firestore.collection('study_logs').doc(id);
+        const doc = await ref.get();
 
-        const [result] = await db.query(
-            `DELETE FROM study_logs WHERE id = ?`,
-            [id]
-        );
-        if (result.affectedRows === 0) {
-            return Response.json({ error: '없습니다' }, { status: 404 });
+        if (!doc.exists) {
+            return Response.json({ error: '공부 기록이 없습니다.' }, { status: 404 });
         }
+
+        await ref.delete();
         return Response.json({ ok: true });
     } catch (err) {
         console.error('DELETE /api/study/[id] error:', err);
-        return Response.json({ error: 'DB 삭제 실패' }, { status: 500 });
+        return Response.json({ error: '공부 기록 삭제 실패' }, { status: 500 });
     }
 }

@@ -1,76 +1,75 @@
-import { db } from '../../../lib/db';
+import { getFirestore, serverTimestamp } from '../../../lib/firebaseAdmin';
 
-// 게시글 상세 조회
+function topicResponse(doc) {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        title: data.title || '',
+        body: data.body || '',
+        author: data.author || '익명',
+        date: data.date || '',
+    };
+}
+
 export async function GET(req, { params }) {
     try {
+        const firestore = getFirestore();
         const { id } = await params;
+        const doc = await firestore.collection('topics').doc(id).get();
 
-        const [rows] = await db.query(
-            `SELECT id, title, body, author, date
-               FROM topics
-              WHERE id = ?`,
-            [id]
-        );
-
-        if (rows.length === 0) {
-            return Response.json({ error: '글이 없습니다' }, { status: 404 });
+        if (!doc.exists) {
+            return Response.json({ error: '글이 없습니다.' }, { status: 404 });
         }
 
-        return Response.json(rows[0]);
+        return Response.json(topicResponse(doc));
     } catch (err) {
         console.error('GET /api/topics/[id] error:', err);
-        return Response.json({ error: 'DB 조회 실패' }, { status: 500 });
+        return Response.json({ error: '게시글 조회 실패' }, { status: 500 });
     }
 }
 
-// 게시글 수정
 export async function PATCH(req, { params }) {
     try {
+        const firestore = getFirestore();
         const { id } = await params;
         const { title, body, author } = await req.json();
+        const ref = firestore.collection('topics').doc(id);
+        const doc = await ref.get();
 
-        const [result] = await db.query(
-            `UPDATE topics
-                SET title  = COALESCE(?, title),
-                    body   = COALESCE(?, body),
-                    author = COALESCE(?, author)
-              WHERE id = ?`,
-            [title ?? null, body ?? null, author ?? null, id]
-        );
-
-        if (result.affectedRows === 0) {
-            return Response.json({ error: '글이 없습니다' }, { status: 404 });
+        if (!doc.exists) {
+            return Response.json({ error: '글이 없습니다.' }, { status: 404 });
         }
 
-        const [rows] = await db.query(
-            `SELECT id, title, body, author, date FROM topics WHERE id = ?`,
-            [id]
-        );
+        const updates = { updated_at: serverTimestamp() };
+        if (title !== undefined) updates.title = title;
+        if (body !== undefined) updates.body = body;
+        if (author !== undefined) updates.author = author;
 
-        return Response.json(rows[0]);
+        await ref.update(updates);
+
+        const updated = await ref.get();
+        return Response.json(topicResponse(updated));
     } catch (err) {
         console.error('PATCH /api/topics/[id] error:', err);
-        return Response.json({ error: 'DB 수정 실패' }, { status: 500 });
+        return Response.json({ error: '게시글 수정 실패' }, { status: 500 });
     }
 }
 
-// 게시글 삭제
 export async function DELETE(req, { params }) {
     try {
+        const firestore = getFirestore();
         const { id } = await params;
+        const ref = firestore.collection('topics').doc(id);
+        const doc = await ref.get();
 
-        const [result] = await db.query(
-            `DELETE FROM topics WHERE id = ?`,
-            [id]
-        );
-
-        if (result.affectedRows === 0) {
-            return Response.json({ error: '글이 없습니다' }, { status: 404 });
+        if (!doc.exists) {
+            return Response.json({ error: '글이 없습니다.' }, { status: 404 });
         }
 
+        await ref.delete();
         return Response.json({ ok: true });
     } catch (err) {
         console.error('DELETE /api/topics/[id] error:', err);
-        return Response.json({ error: 'DB 삭제 실패' }, { status: 500 });
+        return Response.json({ error: '게시글 삭제 실패' }, { status: 500 });
     }
 }
