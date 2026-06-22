@@ -45,7 +45,7 @@ body {
 
 /* 메뉴 */
 .menu a {
-  font-size: 16px;
+  font-size: 18px;
   color: #ffffff;
   text-decoration: none;
   padding: 8px 18px;
@@ -175,7 +175,7 @@ body {
 
 /* 글쓰기 css */
 
-/* ✏️ 글쓰기 페이지 */
+/* 글쓰기 페이지 */
 .form-container {
   width: 60%;
   margin: 60px auto;
