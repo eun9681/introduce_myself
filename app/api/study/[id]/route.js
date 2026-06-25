@@ -1,3 +1,4 @@
+import { requireAdmin } from '../../../lib/auth';
 import { getFirestore, serverTimestamp } from '../../../lib/firebaseAdmin';
 import { saveStudyImage } from '../../../lib/studyImage';
 
@@ -18,6 +19,8 @@ function studyResponse(doc) {
         content: data.content || '',
         code: data.code || '',
         image_url: data.image_url || '',
+        author: data.author || '',
+        author_uid: data.author_uid || '',
         created_at: toDateString(data.created_at),
     };
 }
@@ -41,6 +44,7 @@ export async function GET(req, { params }) {
 
 export async function PATCH(req, { params }) {
     try {
+        await requireAdmin();
         const firestore = getFirestore();
         const { id } = await params;
         const form = await req.formData();
@@ -66,15 +70,16 @@ export async function PATCH(req, { params }) {
         return Response.json({ id, ok: true });
     } catch (err) {
         console.error('PATCH /api/study/[id] error:', err);
-        if (err.status) {
-            return Response.json({ error: err.message }, { status: err.status });
-        }
-        return Response.json({ error: '공부 기록 수정 실패' }, { status: 500 });
+        return Response.json(
+            { error: err.message || '공부 기록 수정 실패' },
+            { status: err.status || 500 }
+        );
     }
 }
 
 export async function DELETE(req, { params }) {
     try {
+        await requireAdmin();
         const firestore = getFirestore();
         const { id } = await params;
         const ref = firestore.collection('study_logs').doc(id);
@@ -88,6 +93,9 @@ export async function DELETE(req, { params }) {
         return Response.json({ ok: true });
     } catch (err) {
         console.error('DELETE /api/study/[id] error:', err);
-        return Response.json({ error: '공부 기록 삭제 실패' }, { status: 500 });
+        return Response.json(
+            { error: err.message || '공부 기록 삭제 실패' },
+            { status: err.status || 500 }
+        );
     }
 }

@@ -1,3 +1,4 @@
+import { requireAdmin } from '../../lib/auth';
 import { getFirestore, serverTimestamp } from '../../lib/firebaseAdmin';
 import { saveStudyImage } from '../../lib/studyImage';
 
@@ -18,6 +19,8 @@ function studyResponse(doc) {
         content: data.content || '',
         code: data.code || '',
         image_url: data.image_url || '',
+        author: data.author || '',
+        author_uid: data.author_uid || '',
         created_at: toDateString(data.created_at),
     };
 }
@@ -39,6 +42,7 @@ export async function GET() {
 
 export async function POST(req) {
     try {
+        const user = await requireAdmin();
         const firestore = getFirestore();
         const form = await req.formData();
         const title = form.get('title');
@@ -61,6 +65,9 @@ export async function POST(req) {
             content,
             code,
             image_url: imageUrl || '',
+            author: user.name,
+            author_email: user.email,
+            author_uid: user.uid,
             created_at: serverTimestamp(),
             updated_at: serverTimestamp(),
         });
@@ -68,9 +75,9 @@ export async function POST(req) {
         return Response.json({ id: doc.id, ok: true }, { status: 201 });
     } catch (err) {
         console.error('POST /api/study error:', err);
-        if (err.status) {
-            return Response.json({ error: err.message }, { status: err.status });
-        }
-        return Response.json({ error: '공부 기록 저장 실패' }, { status: 500 });
+        return Response.json(
+            { error: err.message || '공부 기록 저장 실패' },
+            { status: err.status || 500 }
+        );
     }
 }

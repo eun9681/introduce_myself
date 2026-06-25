@@ -2,35 +2,37 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import SiteHeader from "../components/SiteHeader";
 
 export default function Board() {
   const [topics, setTopics] = useState([]);
   const [search, setSearch] = useState('');
   const [type, setType] = useState('title');
+  const [user, setUser] = useState(null);
 
-  // 데이터 불러오기
   useEffect(() => {
     async function fetchData() {
       try {
-        const resp = await fetch(`/api/topics`, {
-          cache: "no-store" // ⭐ 최신 데이터 보장
-        });
+        const [topicResp, meResp] = await Promise.all([
+          fetch('/api/topics', { cache: 'no-store' }),
+          fetch('/api/auth/me', { cache: 'no-store' }),
+        ]);
 
-        if (!resp.ok) {
-          throw new Error("데이터 불러오기 실패");
-        }
+        if (!topicResp.ok) throw new Error('데이터 불러오기 실패');
 
-        const data = await resp.json();
-        setTopics(data);
+        const topicData = await topicResp.json();
+        const meData = meResp.ok ? await meResp.json() : { user: null };
+
+        setTopics(Array.isArray(topicData) ? topicData : []);
+        setUser(meData.user || null);
       } catch (err) {
-        console.error("에러 발생:", err);
+        console.error('에러 발생:', err);
       }
     }
 
     fetchData();
   }, []);
 
-  // 검색 필터
   const filteredTopics = topics.filter((topic) => {
     if (!search) return true;
     return topic[type]?.toLowerCase().includes(search.toLowerCase());
@@ -38,29 +40,13 @@ export default function Board() {
 
   return (
     <>
-      {/* 헤더 */}
-      <header className="header">
-        <div className="logo">
-          <img src="/logo.png" alt="logo" />
-          <h1>김다은</h1>
-        </div>
+      <SiteHeader />
 
-        <div className="menu">
-          <a href="/main/main.html">홈</a>
-          <Link href="/board">게시판</Link>
-          <Link href="/study">공부기록</Link>
-          <a href="https://share.google/D5ClHaEjnHNU6YscY">채용공고 확인</a>
-          <a href="https://share.google/D25ngATn7ulcb0MBA">IBK기업은행 홈페이지</a>
-        </div>
-      </header>
-
-      {/* 게시판 */}
       <div className="container">
         <h2 className="title">게시판</h2>
 
-        {/* 검색 */}
         <div className="search-box">
-          <select onChange={(e) => setType(e.target.value)}>
+          <select value={type} onChange={(e) => setType(e.target.value)}>
             <option value="title">제목</option>
             <option value="body">내용</option>
           </select>
@@ -71,10 +57,9 @@ export default function Board() {
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          <button>검색</button>
+          <button type="button">검색</button>
         </div>
 
-        {/* 테이블 */}
         <table className="board">
           <thead>
             <tr>
@@ -94,29 +79,29 @@ export default function Board() {
               filteredTopics.map((topic, index) => (
                 <tr key={topic.id}>
                   <td>{index + 1}</td>
-
                   <td>
                     <Link href={`/read/${topic.id}`}>
                       {topic.title}
                     </Link>
                   </td>
-
                   <td>{topic.author || "익명"}</td>
-
-                  <td>
-                    {topic.date || new Date().toLocaleDateString()}
-                  </td>
+                  <td>{topic.date || new Date().toLocaleDateString()}</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
 
-        {/* 글쓰기 버튼 */}
         <div className="bottom">
-          <Link href="/create">
-            <button className="write-btn">글쓰기</button>
-          </Link>
+          {user ? (
+            <Link href="/create">
+              <button className="write-btn">글쓰기</button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <button className="write-btn">로그인 후 글쓰기</button>
+            </Link>
+          )}
         </div>
       </div>
     </>

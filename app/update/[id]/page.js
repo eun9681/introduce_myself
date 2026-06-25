@@ -2,6 +2,9 @@
 
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import AuthGate from "../../components/AuthGate";
+import MarkdownView from "../../components/MarkdownView";
+import SiteHeader from "../../components/SiteHeader";
 
 export default function Update() {
   const router = useRouter();
@@ -11,18 +14,16 @@ export default function Update() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
 
-  // 기존 데이터 불러오기
   useEffect(() => {
     async function fetchData() {
       const resp = await fetch(`/api/topics/${id}`);
       const data = await resp.json();
-      setTitle(data.title);
-      setBody(data.body);
+      setTitle(data.title || '');
+      setBody(data.body || '');
     }
     fetchData();
   }, [id]);
 
-  // 수정 요청
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -33,39 +34,51 @@ export default function Update() {
       },
       body: JSON.stringify({ title, body })
     });
+    const data = await resp.json().catch(() => ({}));
 
     if (!resp.ok) {
-      alert("수정 실패");
+      alert(data.error || "수정 실패");
       return;
     }
 
-    const data = await resp.json();
     router.push(`/read/${data.id}`);
+    router.refresh();
   }
 
   return (
-    <div className="form-container">
-      <h2>글 수정</h2>
+    <>
+      <SiteHeader />
+      <AuthGate>
+        <div className="form-container">
+          <h2>글 수정</h2>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
 
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-        />
+            <p className="markdown-help">Markdown 사용 가능: # 제목, **굵게**, *기울임*, ~~취소선~~, [링크](https://...), - 목록, 1. 목록, &gt; 인용, 표, ---</p>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+            />
 
-        <div className="btn-group">
-          <button type="submit">수정</button>
-          <button type="button" onClick={() => router.push('/board')}>
-            취소
-          </button>
+            <div className="markdown-preview">
+              <h3>미리보기</h3>
+              <MarkdownView content={body} />
+            </div>
+
+            <div className="btn-group">
+              <button type="submit">수정</button>
+              <button type="button" onClick={() => router.push('/board')}>
+                취소
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
+      </AuthGate>
+    </>
   );
 }

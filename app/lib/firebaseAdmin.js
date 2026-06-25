@@ -1,5 +1,18 @@
 import admin from 'firebase-admin';
 
+function initializeAdminApp() {
+    if (!admin.apps.length) {
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: getFirebaseEnv('FIREBASE_PROJECT_ID'),
+                clientEmail: getFirebaseEnv('FIREBASE_CLIENT_EMAIL'),
+                privateKey: getPrivateKey(),
+            }),
+            storageBucket: getOptionalFirebaseEnv('FIREBASE_STORAGE_BUCKET'),
+        });
+    }
+}
+
 function requiredEnv(name) {
     const value = process.env[name];
     if (!value) {
@@ -33,18 +46,14 @@ function getPrivateKey() {
 }
 
 export function getFirestore() {
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: getFirebaseEnv('FIREBASE_PROJECT_ID'),
-                clientEmail: getFirebaseEnv('FIREBASE_CLIENT_EMAIL'),
-                privateKey: getPrivateKey(),
-            }),
-            storageBucket: getOptionalFirebaseEnv('FIREBASE_STORAGE_BUCKET'),
-        });
-    }
+    initializeAdminApp();
 
     return admin.firestore();
+}
+
+export function getAuth() {
+    initializeAdminApp();
+    return admin.auth();
 }
 
 export function getStorageBucket() {

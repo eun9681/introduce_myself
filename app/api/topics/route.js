@@ -1,4 +1,7 @@
+import { requireUser } from '../../lib/auth';
 import { getFirestore, serverTimestamp } from '../../lib/firebaseAdmin';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
     try {
@@ -15,6 +18,7 @@ export async function GET() {
                 title: data.title || '',
                 body: data.body || '',
                 author: data.author || '익명',
+                author_uid: data.author_uid || '',
                 date: data.date || '',
             };
         });
@@ -28,8 +32,9 @@ export async function GET() {
 
 export async function POST(req) {
     try {
+        const user = await requireUser();
         const firestore = getFirestore();
-        const { title, body, author, date } = await req.json();
+        const { title, body, date } = await req.json();
 
         if (!title || !body) {
             return Response.json(
@@ -42,7 +47,9 @@ export async function POST(req) {
         const doc = await firestore.collection('topics').add({
             title,
             body,
-            author: author || '익명',
+            author: user.name,
+            author_email: user.email,
+            author_uid: user.uid,
             date: today,
             created_at: serverTimestamp(),
             updated_at: serverTimestamp(),
@@ -53,13 +60,17 @@ export async function POST(req) {
                 id: doc.id,
                 title,
                 body,
-                author: author || '익명',
+                author: user.name,
+                author_uid: user.uid,
                 date: today,
             },
             { status: 201 }
         );
     } catch (err) {
         console.error('POST /api/topics error:', err);
-        return Response.json({ error: '게시글 저장 실패' }, { status: 500 });
+        return Response.json(
+            { error: err.message || '게시글 저장 실패' },
+            { status: err.status || 500 }
+        );
     }
 }

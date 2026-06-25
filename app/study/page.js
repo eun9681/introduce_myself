@@ -2,17 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import SiteHeader from "../components/SiteHeader";
 
 export default function StudyList() {
   const [items, setItems] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const resp = await fetch('/api/study', { cache: 'no-store' });
-        const data = await resp.json();
-        setItems(Array.isArray(data) ? data : []);
+        const [studyResp, meResp] = await Promise.all([
+          fetch('/api/study', { cache: 'no-store' }),
+          fetch('/api/auth/me', { cache: 'no-store' }),
+        ]);
+        const studyData = await studyResp.json();
+        const meData = meResp.ok ? await meResp.json() : { user: null };
+        setItems(Array.isArray(studyData) ? studyData : []);
+        setUser(meData.user || null);
       } catch (err) {
         console.error(err);
       } finally {
@@ -21,43 +28,28 @@ export default function StudyList() {
     })();
   }, []);
 
-  // 카테고리별로 다른 이모지 배경
   const categoryEmoji = (cat) => {
     const map = {
-      'Next.js': '⚛️',
-      'React': '⚛️',
-      'JavaScript': '📜',
-      'CSS': '🎨',
-      'HTML': '📄',
-      'MySQL': '🗄️',
-      'Node.js': '🟢',
+      'Next.js': 'N',
+      'React': 'R',
+      'JavaScript': 'JS',
+      'CSS': 'CSS',
+      'HTML': 'HTML',
+      'MySQL': 'SQL',
+      'Node.js': 'Node',
     };
-    return map[cat] || '📚';
+    return map[cat] || 'ETC';
   };
 
   return (
     <>
-      <header className="header">
-        <div className="logo">
-          <img src="/logo.png" alt="logo" />
-          <h1>김다은</h1>
-        </div>
-        <div className="menu">
-          <a href="/main/main.html">홈</a>
-          <Link href="/board">게시판</Link>
-          <Link href="/study">공부기록</Link>
-          <a href="https://share.google/D5ClHaEjnHNU6YscY">채용공고 확인</a>
-          <a href="https://share.google/D25ngATn7ulcb0MBA">IBK기업은행 홈페이지</a>
-        </div>
-      </header>
+      <SiteHeader />
 
-      {/* 안내 문구 */}
       <div className="study-intro">
-        <p>일일 공부 기록</p>
-        <p>학습 내용을 카드로 정리</p>
+        <p>오늘도 열심히 공부했군요..!</p>
+        <p>학습 내용을 카드로 정리해보세요</p>
       </div>
 
-      {/* 카드 그리드 */}
       <div className="study-wrap">
         {loading ? (
           <div className="loading">로딩중...</div>
@@ -89,11 +81,13 @@ export default function StudyList() {
           </div>
         )}
 
-        <div className="study-bottom">
-          <Link href="/study/create">
-            <button className="write-btn">글쓰기</button>
-          </Link>
-        </div>
+        {user?.role === 'admin' && (
+          <div className="study-bottom">
+            <Link href="/study/create">
+              <button className="write-btn">글쓰기</button>
+            </Link>
+          </div>
+        )}
       </div>
     </>
   );
