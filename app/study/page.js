@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SiteHeader from "../components/SiteHeader";
+import { markdownExcerpt } from "../lib/markdownText";
 
 export default function StudyList() {
   const [items, setItems] = useState([]);
@@ -71,7 +72,7 @@ export default function StudyList() {
                 <div className="study-card-body">
                   <span className="study-tag">{it.category || 'ETC'}</span>
                   <h3 className="study-card-title">{it.title}</h3>
-                  <p className="study-card-text">{it.content}</p>
+                  <p className="study-card-text">{markdownExcerpt(it.content)}</p>
                   <div className="study-card-date">
                     {(it.created_at || '').slice(0, 10).replaceAll('-', '. ')}
                   </div>
